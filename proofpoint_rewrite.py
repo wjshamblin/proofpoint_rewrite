@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-# coding: utf-8
+# coding: utf8
 '''
 This program can be used in conjunction with procmail to remove the proofpoint
 url defense urls from an email. A simple rule like below should work.
 
-:0:
-|$HOME/bin/remove_proofpoint.py
+:0 fw
+| python3.5 $HOME/bin/remove_proofpoint.py
 
 The program will take stdin, and return the modified content on stdout.
 
@@ -52,5 +52,4 @@ if message.is_multipart():
 else:
     _payload = revert_ppurls(message.get_payload(decode=True).decode('utf-8'))
     message.set_payload(_payload)
-
-print(message)
+print(message.as_string())
