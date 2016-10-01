@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# coding: utf8
+# -*- coding: utf-8 -*-
 '''
 This program can be used in conjunction with procmail to remove the proofpoint
 url defense urls from an email. A simple rule like below should work.
@@ -15,10 +15,17 @@ with a single part, or multiplart messages with plain text and html.
 Joe Shamblin <wjs at cs.duke.edu>
 '''
 
+from contextlib import closing
 from urllib.parse import urlparse, parse_qs
 import email
 import re
+import requests
 import sys
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+from io import StringIO
+from email.generator import Generator
+
 
 pp_url = re.compile(r'(https://urldefense.proofpoint.com/v2/url\?u=.*&e=)')
 message = email.message_from_string(sys.stdin.read())
@@ -29,13 +36,21 @@ def revert_ppurls(c):
     with the original url
     '''
     for match in pp_url.finditer(c):
-        url = parse_qs(urlparse(match.group(0)).query)
-        tmp = url['u'][0].replace('_', '/')
-        # replace the hexidecimal encoding with the unicode entry
-        # ref: https://github.com/warquel/ppdecode
-        for m in set(re.findall('-[0-9A-F]{2}', tmp)):
-            tmp = tmp.replace(m, chr(int(m[1:3], 16)))
-        c = c.replace(match.group(0), tmp.rstrip())
+        pp_url_match = match.group(0)
+        # print(pp_url_match)
+        with closing(requests.get(pp_url_match, stream=True, verify=False)) as api_response:
+            try:
+                api_response.raise_for_status()
+                if api_response.status_code in [200]:
+                    url = parse_qs(urlparse(pp_url_match).query)
+                    tmp = url['u'][0].replace('_', '/')
+                    # replace the hexidecimal encoding with the unicode entry
+                    # ref: https://github.com/warquel/ppdecode
+                    for m in set(re.findall('-[0-9A-F]{2}', tmp)):
+                        tmp = tmp.replace(m, chr(int(m[1:3], 16)))
+                    c = c.replace(pp_url_match, tmp.rstrip())
+             except requests.exceptions.HTTPError:
+                pass
     return c
 
 # this should deal with either single messages or flat multipart messages.
@@ -46,10 +61,11 @@ if message.is_multipart():
     for part in message.walk():
         content_type = part.get_content_type()
         if content_type in ['text/html', 'text/plain']:
-            _content = part.get_payload(decode=True).decode('utf-8')
-            _payload = revert_ppurls(_content)
+            _content = part.get_payload(decode=True)
+            _payload = revert_ppurls(_content.decode('utf-8'))
             part.set_payload(_payload)
 else:
     _payload = revert_ppurls(message.get_payload(decode=True).decode('utf-8'))
     message.set_payload(_payload)
-print(message.as_string())
+
+sys.stdout.write(message.as_string())
