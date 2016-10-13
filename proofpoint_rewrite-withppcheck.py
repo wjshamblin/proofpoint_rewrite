@@ -47,7 +47,7 @@ def revert_ppurls(c):
                     for m in set(re.findall('-[0-9A-F]{2}', tmp)):
                         tmp = tmp.replace(m, chr(int(m[1:3], 16)))
                     c = c.replace(pp_url_match, tmp.rstrip())
-        except (requests.exceptions.HTTPError, requests.exceptions.ReadTimeout):
+        except:
             pass
     return c
 
