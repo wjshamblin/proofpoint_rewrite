@@ -68,4 +68,4 @@ else:
     _payload = revert_ppurls(message.get_payload(decode=True).decode('utf-8'))
     message.set_payload(_payload)
 
-sys.stdout.write(message.as_string())
+sys.stdout.write(message.as_string(unixfrom=True))
