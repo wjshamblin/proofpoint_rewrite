@@ -37,7 +37,7 @@ def revert_ppurls(c):
         pp_url_match = match.group(0)
         # print(pp_url_match)
         try:
-            with closing(requests.get(pp_url_match, stream=True, verify=False, timeout=2)) as api_response:
+            with closing(requests.get(pp_url_match, stream=True, verify=False, timeout=10)) as api_response:
                 api_response.raise_for_status()
                 if api_response.status_code in [200]:
                     url = parse_qs(urlparse(pp_url_match).query)
