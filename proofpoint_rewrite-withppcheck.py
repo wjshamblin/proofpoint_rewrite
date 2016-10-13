@@ -19,12 +19,10 @@ from contextlib import closing
 from urllib.parse import urlparse, parse_qs
 import email
 import re
-import requests
 import sys
+import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-from io import StringIO
-from email.generator import Generator
 
 
 pp_url = re.compile(r'(https://urldefense.proofpoint.com/v2/url\?u=.*&e=)')
@@ -38,8 +36,8 @@ def revert_ppurls(c):
     for match in pp_url.finditer(c):
         pp_url_match = match.group(0)
         # print(pp_url_match)
-        with closing(requests.get(pp_url_match, stream=True, verify=False)) as api_response:
-            try:
+        try:
+            with closing(requests.get(pp_url_match, stream=True, verify=False, timeout=2)) as api_response:
                 api_response.raise_for_status()
                 if api_response.status_code in [200]:
                     url = parse_qs(urlparse(pp_url_match).query)
@@ -49,8 +47,8 @@ def revert_ppurls(c):
                     for m in set(re.findall('-[0-9A-F]{2}', tmp)):
                         tmp = tmp.replace(m, chr(int(m[1:3], 16)))
                     c = c.replace(pp_url_match, tmp.rstrip())
-            except requests.exceptions.HTTPError:
-                pass
+        except (requests.exceptions.HTTPError, requests.exceptions.ReadTimeout):
+            pass
     return c
 
 # this should deal with either single messages or flat multipart messages.
