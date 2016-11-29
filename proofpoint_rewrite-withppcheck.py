@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
+#encoding: utf-8
 '''
 This program can be used in conjunction with procmail to remove the proofpoint
 url defense urls from an email. A simple rule like below should work.
@@ -19,13 +19,19 @@ from contextlib import closing
 from urllib.parse import urlparse, parse_qs
 import email
 import re
+import quopri
 import sys
+from io import StringIO
+from email.generator import Generator
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
+# deal with unicode issues
+import codecs
+sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
-pp_url = re.compile(r'(https://urldefense.proofpoint.com/v2/url\?u=.*&e=)')
+pp_url = re.compile(r'(https://urldefense.proofpoint.com/v2/url\?u=.*?\&e=)')
 message = email.message_from_string(sys.stdin.read())
 
 def revert_ppurls(c):
@@ -55,15 +61,34 @@ def revert_ppurls(c):
 # A more thorough approach would be needed for complex mime trees
 # ref. http://blog.magiksys.net/parsing-email-using-python-content
 
+
 if message.is_multipart():
     for part in message.walk():
+        content_transfer = part.__getitem__('Content-Transfer-Encoding')
+        charset = part.get_content_charset()
         content_type = part.get_content_type()
         if content_type in ['text/html', 'text/plain']:
-            _content = part.get_payload(decode=True)
-            _payload = revert_ppurls(_content.decode('utf-8'))
-            part.set_payload(_payload)
+            _content = part.get_payload(decode=True).decode('utf-8')
+            _payload = revert_ppurls(_content)
+            if content_transfer.lower() == 'base64':
+                part.set_payload(email.encoders.encode_base64(_payload))
+            elif content_transfer.lower() == 'quoted-printable':
+                part.set_payload(quopri.encodestring(_payload.encode('utf-8')))
+            else:
+                part.set_payload(_payload)
 else:
+    content_transfer = message.__getitem__('Content-Transfer-Encoding')
+    charset = part.get_content_charset()
     _payload = revert_ppurls(message.get_payload(decode=True).decode('utf-8'))
-    message.set_payload(_payload)
+    if content_transfer.lower() == 'base64':
+        part.set_payload(email.encoders.encode_base64(_payload))
+    elif content_transfer.lower() == 'quoted-printable':
+        part.set_payload(quopri.encodestring(_payload.encode('utf-8')))
+    else:
+        message.set_payload(_payload)
 
-sys.stdout.write(message.as_string(unixfrom=True))
+fp = StringIO()
+g = Generator(fp, mangle_from_=True, maxheaderlen=60)
+g.flatten(message, unixfrom=True)
+text = fp.getvalue()
+sys.stdout.write(text)

@@ -1,10 +1,21 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 # coding: utf8
 '''
 This program can be used in conjunction with procmail to remove the proofpoint
 url defense urls from an email. A simple rule like below should work.
+
 :0 fw
-| python3.5 $HOME/bin/remove_proofpoint.py
+| python3 $HOME/bin/remove_proofpoint.py
+
+N.B.
+
+you should either put the following lines in your script
+
+# import codecs
+# sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
+
+or define
+
 The program will take stdin, and return the modified content on stdout.
 This is a very basic script that assumes a lot. It should rewrite messages
 with a single part, or multiplart messages with plain text and html.
@@ -14,16 +25,25 @@ Joe Shamblin <wjs at cs.duke.edu>
 from urllib.parse import urlparse, parse_qs
 import email
 import re
+import quopri
 import sys
+from io import StringIO
+from email.generator import Generator
 
-pp_url = re.compile(r'(https://urldefense.proofpoint.com/v2/url\?u=.*&e=)')
+# deal with unicode issues
+import codecs
+sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
+
+pp_url = re.compile(r'(https://urldefense.proofpoint.com/v2/url\?u=.*?\&e=)')
 message = email.message_from_string(sys.stdin.read())
 
+
 def revert_ppurls(c):
-    '''
-    take in text and replace all proofpoint url defense urls
+    """
+    Take in text and replace all proofpoint url defense urls.
+
     with the original url
-    '''
+    """
     for match in pp_url.finditer(c):
         url = parse_qs(urlparse(match.group(0)).query)
         tmp = url['u'][0].replace('_', '/')
@@ -38,14 +58,34 @@ def revert_ppurls(c):
 # A more thorough approach would be needed for complex mime trees
 # ref. http://blog.magiksys.net/parsing-email-using-python-content
 
+
 if message.is_multipart():
     for part in message.walk():
+        content_transfer = part.__getitem__('Content-Transfer-Encoding')
+        charset = part.get_content_charset()
         content_type = part.get_content_type()
         if content_type in ['text/html', 'text/plain']:
             _content = part.get_payload(decode=True).decode('utf-8')
             _payload = revert_ppurls(_content)
-            part.set_payload(_payload)
+            if content_transfer.lower() == 'base64':
+                part.set_payload(email.encoders.encode_base64(_payload))
+            elif content_transfer.lower() == 'quoted-printable':
+                part.set_payload(quopri.encodestring(_payload.encode('utf-8')))
+            else:
+                part.set_payload(_payload)
 else:
+    content_transfer = message.__getitem__('Content-Transfer-Encoding')
+    charset = part.get_content_charset()
     _payload = revert_ppurls(message.get_payload(decode=True).decode('utf-8'))
-    message.set_payload(_payload)
-sys.stdout.write(message.as_string(unixfrom=True))
+    if content_transfer.lower() == 'base64':
+        part.set_payload(email.encoders.encode_base64(_payload))
+    elif content_transfer.lower() == 'quoted-printable':
+        part.set_payload(quopri.encodestring(_payload.encode('utf-8')))
+    else:
+        message.set_payload(_payload)
+
+fp = StringIO()
+g = Generator(fp, mangle_from_=True, maxheaderlen=60)
+g.flatten(message, unixfrom=True)
+text = fp.getvalue()
+sys.stdout.write(text)
