@@ -79,12 +79,12 @@ if message.is_multipart():
                 part.set_payload(_payload)
 else:
     content_transfer = message.__getitem__('Content-Transfer-Encoding')
-    charset = part.get_content_charset()
+    charset = message.get_content_charset()
     _payload = revert_ppurls(message.get_payload(decode=True).decode('utf-8'))
     if content_transfer.lower() == 'base64':
-        part.set_payload(email.encoders.encode_base64(_payload))
+        message.set_payload(email.encoders.encode_base64(_payload))
     elif content_transfer.lower() == 'quoted-printable':
-        part.set_payload(quopri.encodestring(_payload.encode('utf-8')))
+        message.set_payload(quopri.encodestring(_payload.encode('utf-8')))
     else:
         message.set_payload(_payload)
 
