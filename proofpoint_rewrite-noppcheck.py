@@ -15,6 +15,7 @@ Joe Shamblin <wjs at cs.duke.edu>
 '''
 
 from urllib.parse import urlparse, parse_qs
+import base64
 import email
 import re
 import quopri
@@ -60,7 +61,7 @@ if message.is_multipart():
             _content = part.get_payload(decode=True).decode('utf-8')
             _payload = revert_ppurls(_content)
             if content_transfer.lower() == 'base64':
-                part.set_payload(email.encoders.encode_base64(_payload))
+                part.set_payload(base64.encodestring(_payload.encode('utf-8')))
             elif content_transfer.lower() == 'quoted-printable':
                 part.set_payload(quopri.encodestring(_payload.encode('utf-8')))
             else:
@@ -70,7 +71,7 @@ else:
     charset = message.get_content_charset()
     _payload = revert_ppurls(message.get_payload(decode=True).decode('utf-8'))
     if content_transfer.lower() == 'base64':
-        message.set_payload(email.encoders.encode_base64(_payload))
+        message.set_payload(base64.encodestring(_payload.encode('utf-8')))
     elif content_transfer.lower() == 'quoted-printable':
         message.set_payload(quopri.encodestring(_payload.encode('utf-8')))
     else:

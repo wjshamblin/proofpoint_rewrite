@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-#encoding: utf-8
+# encoding: utf-8
 '''
 This program can be used in conjunction with procmail to remove the proofpoint
 url defense urls from an email. A simple rule like below should work.
@@ -18,6 +18,7 @@ Joe Shamblin <wjs at cs.duke.edu>
 
 from contextlib import closing
 from urllib.parse import urlparse, parse_qs
+import base64
 import email
 import re
 import quopri
@@ -32,7 +33,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 import codecs
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
-pp_url = re.compile(r'(https://urldefense.proofpoint.com/v2/url\?u=.*?\&e=)')
+pp_url = re.compile(r'(https://urldefense.proofpoint.com/v2/url\?u=.*?&e=)')
 message = email.message_from_string(sys.stdin.read())
 
 def revert_ppurls(c):
@@ -44,7 +45,7 @@ def revert_ppurls(c):
         pp_url_match = match.group(0)
         # print(pp_url_match)
         try:
-            with closing(requests.get(pp_url_match, stream=True, verify=False, timeout=10)) as api_response:
+            with closing(requests.get(pp_url_match, stream=True, verify=False, timeout=3)) as api_response:
                 api_response.raise_for_status()
                 if api_response.status_code in [200]:
                     url = parse_qs(urlparse(pp_url_match).query)
@@ -72,7 +73,7 @@ if message.is_multipart():
             _content = part.get_payload(decode=True).decode('utf-8')
             _payload = revert_ppurls(_content)
             if content_transfer.lower() == 'base64':
-                part.set_payload(email.encoders.encode_base64(_payload))
+                part.set_payload(base64.encodestring(_payload.encode('utf-8')))
             elif content_transfer.lower() == 'quoted-printable':
                 part.set_payload(quopri.encodestring(_payload.encode('utf-8')))
             else:
@@ -82,7 +83,7 @@ else:
     charset = message.get_content_charset()
     _payload = revert_ppurls(message.get_payload(decode=True).decode('utf-8'))
     if content_transfer.lower() == 'base64':
-        message.set_payload(email.encoders.encode_base64(_payload))
+        message.set_payload(base64.encodestring(_payload.encode('utf-8')))
     elif content_transfer.lower() == 'quoted-printable':
         message.set_payload(quopri.encodestring(_payload.encode('utf-8')))
     else:
