@@ -25,7 +25,7 @@ from email.generator import Generator
 
 # deal with unicode issues
 import codecs
-sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
+sys.stdout = codecs.getwriter("iso-8859-1")(sys.stdout.detach())
 
 pp_url = re.compile(r'(https://urldefense.proofpoint.com/v2/url\?u=.*?\&e=)')
 message = email.message_from_string(sys.stdin.read())
@@ -58,22 +58,22 @@ if message.is_multipart():
         charset = part.get_content_charset()
         content_type = part.get_content_type()
         if content_type in ['text/html', 'text/plain']:
-            _content = part.get_payload(decode=True).decode('utf-8')
+            _content = part.get_payload(decode=True).decode('iso-8859-1')
             _payload = revert_ppurls(_content)
-            if content_transfer.lower() == 'base64':
-                part.set_payload(base64.encodestring(_payload.encode('utf-8')))
-            elif content_transfer.lower() == 'quoted-printable':
-                part.set_payload(quopri.encodestring(_payload.encode('utf-8')))
+            if content_transfer and content_transfer.lower() == 'base64':
+                part.set_payload(base64.encodestring(_payload.encode('iso-8859-1')))
+            elif content_transfer and  content_transfer.lower() == 'quoted-printable':
+                part.set_payload(quopri.encodestring(_payload.encode('iso-8859-1')))
             else:
                 part.set_payload(_payload)
 else:
     content_transfer = message.__getitem__('Content-Transfer-Encoding')
     charset = message.get_content_charset()
-    _payload = revert_ppurls(message.get_payload(decode=True).decode('utf-8'))
-    if content_transfer.lower() == 'base64':
-        message.set_payload(base64.encodestring(_payload.encode('utf-8')))
-    elif content_transfer.lower() == 'quoted-printable':
-        message.set_payload(quopri.encodestring(_payload.encode('utf-8')))
+    _payload = revert_ppurls(message.get_payload(decode=True).decode('iso-8859-1'))
+    if content_transfer and  content_transfer.lower() == 'base64':
+        message.set_payload(base64.encodestring(_payload.encode('iso-8859-1')))
+    elif content_transfer and content_transfer.lower() == 'quoted-printable':
+        message.set_payload(quopri.encodestring(_payload.encode('iso-8859-1')))
     else:
         message.set_payload(_payload)
 
