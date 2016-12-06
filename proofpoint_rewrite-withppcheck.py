@@ -72,9 +72,9 @@ if message.is_multipart():
         if content_type in ['text/html', 'text/plain']:
             _content = part.get_payload(decode=True).decode('iso-8859-1')
             _payload = revert_ppurls(_content)
-            if content_transfer.lower() == 'base64':
+            if content_transfer and content_transfer.lower() == 'base64':
                 part.set_payload(base64.encodestring(_payload.encode('iso-8859-1')))
-            elif content_transfer.lower() == 'quoted-printable':
+            elif content_transfer and content_transfer.lower() == 'quoted-printable':
                 part.set_payload(quopri.encodestring(_payload.encode('iso-8859-1')))
             else:
                 part.set_payload(_payload)
@@ -82,9 +82,9 @@ else:
     content_transfer = message.__getitem__('Content-Transfer-Encoding')
     charset = message.get_content_charset()
     _payload = revert_ppurls(message.get_payload(decode=True).decode('iso-8859-1'))
-    if content_transfer.lower() == 'base64':
+    if content_transfer and content_transfer.lower() == 'base64':
         message.set_payload(base64.encodestring(_payload.encode('iso-8859-1')))
-    elif content_transfer.lower() == 'quoted-printable':
+    elif content_transfer and content_transfer.lower() == 'quoted-printable':
         message.set_payload(quopri.encodestring(_payload.encode('iso-8859-1')))
     else:
         message.set_payload(_payload)
