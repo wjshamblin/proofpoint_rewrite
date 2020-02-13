@@ -33,7 +33,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 import codecs
 sys.stdout = codecs.getwriter("iso-8859-1")(sys.stdout.detach())
 
-pp_url = re.compile(r'(https://urldefense.proofpoint.com/v2/url\?u=.*?&e=)')
+pp_url = re.compile(r'(https://urldefense.proofpoint.com/v2/url\?u=.*?(&|&amp;)e=)')
 message = email.message_from_string(sys.stdin.read())
 
 def revert_ppurls(c):
