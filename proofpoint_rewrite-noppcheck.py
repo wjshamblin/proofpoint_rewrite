@@ -125,7 +125,7 @@ if message.is_multipart():
             _content = part.get_payload(decode=True).decode('iso-8859-1')
             _payload = revert_ppurls(_content)
             if content_transfer and content_transfer.lower() == 'base64':
-                part.set_payload(base64.encodebytes(_payload.encode('utf=8')))
+                part.set_payload(base64.encodebytes(_payload.encode('iso-8859-1')))
             elif content_transfer and content_transfer.lower() == 'quoted-printable':
                 part.set_payload(quopri.encodestring(_payload.encode('iso-8859-1')))
             else:
