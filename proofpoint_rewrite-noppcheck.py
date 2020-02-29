@@ -88,7 +88,7 @@ def decode_v3(pp_encoded_url):
                     match_counter += 1
                 if token.group('sep'):
                     run_length = run_mapping[token.group('sep')[-1]]
-                    end_string += dec_bytes[match_counter:run_length] + token.group('qs')
+                    end_string += dec_bytes[match_counter:run_length + match_counter] + token.group('qs')
                     match_counter += 1
             if base_url:
                 final_url = base_url + end_string
