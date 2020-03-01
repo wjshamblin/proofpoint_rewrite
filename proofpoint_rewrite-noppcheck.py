@@ -61,7 +61,40 @@ def decode_v2(pp_encoded_url):
 
 def decode_v3(pp_encoded_url):
     '''
-    Decode version 3 Proofpoint URLs
+    Decode version 3 Proofpoint URLs. Proofpoint v3 URLs have the following structure
+    https://urldefense.com/v3/__ENCODED_URL__;ENCODED_BYTES!!OToaGQ!89P7bD95-sDCzIxLkYEbM1R_hlGjs6GVKoFbm915ANS356MjJHkgLbB4Vwjpyq0$
+    The Encoded URL looks like:
+
+    https://nl.nytimes.com/f/a/P9ApJ1EErQ6SE9JsTzyvbw**A/AAAAAQA*/RgRgPOXCP0TwaHR0cHM6Ly93d3cubnl0aW1lcy5jb20vaW50ZXJhY3RpdmUvMjAyMC8wMi8yOC9zcG9ydHMvd29tZW5zLW9seW1waWMtbWFyYXRob24tdHJpYWxzLmh0bWw_dGU9MSZubD1ydW5uaW5nJmVtYz1lZGl0X3J1XzIwMjAwMjI5JmNhbXBhaWduX2lkPTM1Jmluc3RhbmNlX2lkPTE2MzY3JnNlZ21lbnRfaWQ9MjE3NTAmdXNlcl9pZD0zZmRiZDc0NjU3ZDAxMTFjYjkxMGZkOTczZDcyNWZjYiZyZWdpX2lkPTMxOTE0MzIwMjAwMjI5VwNueXRCCgAqwmBaXskvuFRSD3dqc0Bjcy5kdWtlLmVkdVgEAAAAAA**A
+
+    The *s are separators. A single * gets replaced with its corresponding decoded byte. While ** followed by a
+    letter, -, or _ determines how many escaped characters to replace. In the above URL, there are three groups of
+    escaped URLs.
+
+    base_url: https://nl.nytimes.com/f/a/P9ApJ1EErQ6SE9JsTzyvbw
+    **A /AAAAAQA
+    * /RgRgPOXCP0TwaHR0cHM6Ly93d3cubnl0aW1lcy5jb20vaW50ZXJhY3RpdmUvMjAyMC8wMi8yOC9zcG9ydHMvd29tZW5zLW9seW1waWMtbWFyYXRob24tdHJpYWxzLmh0bWw_dGU9MSZubD1ydW5uaW5nJmVtYz1lZGl0X3J1XzIwMjAwMjI5JmNhbXBhaWduX2lkPTM1Jmluc3RhbmNlX2lkPTE2MzY3JnNlZ21lbnRfaWQ9MjE3NTAmdXNlcl9pZD0zZmRiZDc0NjU3ZDAxMTFjYjkxMGZkOTczZDcyNWZjYiZyZWdpX2lkPTMxOTE0MzIwMjAwMjI5VwNueXRCCgAqwmBaXskvuFRSD3dqc0Bjcy5kdWtlLmVkdVgEAAAAAA
+    **A
+
+    for a concrete example, take this URL, first unquote (https://docs.python.org/3/library/urllib.parse.html#url-quoting)
+
+    https://urldefense.com/v3/__https://nl.nytimes.com/f/a/P9ApJ1EErQ6SE9JsTzyvbw**A/AAAAAQA*/RgRgPOXCP0TwaHR0cHM6Ly93d3cubnl0aW1lcy5jb20vaW50ZXJhY3RpdmUvMjAyMC8wMi8yOC9zcG9ydHMvd29tZW5zLW9seW1waWMtbWFyYXRob24tdHJpYWxzLmh0bWw_dGU9MSZubD1ydW5uaW5nJmVtYz1lZGl0X3J1XzIwMjAwMjI5JmNhbXBhaWduX2lkPTM1Jmluc3RhbmNlX2lkPTE2MzY3JnNlZ21lbnRfaWQ9MjE3NTAmdXNlcl9pZD0zZmRiZDc0NjU3ZDAxMTFjYjkxMGZkOTczZDcyNWZjYiZyZWdpX2lkPTMxOTE0MzIwMjAwMjI5VwNueXRCCgAqwmBaXskvuFRSD3dqc0Bjcy5kdWtlLmVkdVgEAAAAAA**A__;fn5-fn4!!OToaGQ!89P7bD95-sDCzIxLkYEbM1R_hlGjs6GVKoFbm915ANS356MjJHkgLbB4Vwjpyq0$']
+
+    the encoded bytes are:  fn5-fn4
+    which decodes to: ~~~~~
+
+    the A in run_values is 2 so append "~~" to the base_url, incrementing the counter for matches.
+
+    https://nl.nytimes.com/f/a/P9ApJ1EErQ6SE9JsTzyvbw~~/AAAAAQA
+
+    the * translates to a single ~
+
+    https://nl.nytimes.com/f/a/P9ApJ1EErQ6SE9JsTzyvbw~~/AAAAAQA~/RgRgPOXCP0TwaHR0cHM6Ly93d3cubnl0aW1lcy5jb20vaW50ZXJhY3RpdmUvMjAyMC8wMi8yOC9zcG9ydHMvd29tZW5zLW9seW1waWMtbWFyYXRob24tdHJpYWxzLmh0bWw_dGU9MSZubD1ydW5uaW5nJmVtYz1lZGl0X3J1XzIwMjAwMjI5JmNhbXBhaWduX2lkPTM1Jmluc3RhbmNlX2lkPTE2MzY3JnNlZ21lbnRfaWQ9MjE3NTAmdXNlcl9pZD0zZmRiZDc0NjU3ZDAxMTFjYjkxMGZkOTczZDcyNWZjYiZyZWdpX2lkPTMxOTE0MzIwMjAwMjI5VwNueXRCCgAqwmBaXskvuFRSD3dqc0Bjcy5kdWtlLmVkdVgEAAAAAA
+
+    the **A translates again to 2, which is the number of remaining decoded bytes so append ~~ to the end of the URL to get:
+
+    https://nl.nytimes.com/f/a/P9ApJ1EErQ6SE9JsTzyvbw~~/AAAAAQA~/RgRgPOXCP0TwaHR0cHM6Ly93d3cubnl0aW1lcy5jb20vaW50ZXJhY3RpdmUvMjAyMC8wMi8yOC9zcG9ydHMvd29tZW5zLW9seW1waWMtbWFyYXRob24tdHJpYWxzLmh0bWw_dGU9MSZubD1ydW5uaW5nJmVtYz1lZGl0X3J1XzIwMjAwMjI5JmNhbXBhaWduX2lkPTM1Jmluc3RhbmNlX2lkPTE2MzY3JnNlZ21lbnRfaWQ9MjE3NTAmdXNlcl9pZD0zZmRiZDc0NjU3ZDAxMTFjYjkxMGZkOTczZDcyNWZjYiZyZWdpX2lkPTMxOTE0MzIwMjAwMjI5VwNueXRCCgAqwmBaXskvuFRSD3dqc0Bjcy5kdWtlLmVkdVgEAAAAAA~~
+
     '''
     pp_pattern = re.compile(r'v3/__(?P<url>.+?)__;(?P<enc_bytes>.*?)!')
     token_pattern = re.compile(r'\*(?P<sep>\*.)?(?P<qs>.*?)(?=\*|\Z)')
