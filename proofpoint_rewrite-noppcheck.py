@@ -11,7 +11,7 @@ url defense urls from an email. A simple rule like below should work.
 
 The program will take stdin, and return the modified content on stdout.
 This is a very basic script that assumes a lot. It should rewrite messages
-with a single part, or multiplart messages with plain text and html.
+with a single part, or multipart messages with plain text and html.
 Joe Shamblin <wjs at cs.duke.edu>
 '''
 
@@ -83,7 +83,7 @@ def decode_v3(pp_encoded_url):
     the encoded bytes are:  fn5-fn4
     which decodes to: ~~~~~
 
-    the A in run_values is 2 so append "~~" to the base_url, incrementing the counter for matches.
+    the A in run_values has a value of 2 so append "~~" to the base_url, incrementing the counter for matches.
 
     https://nl.nytimes.com/f/a/P9ApJ1EErQ6SE9JsTzyvbw~~/AAAAAQA
 
